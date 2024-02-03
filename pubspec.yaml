@@ -40,6 +40,13 @@ dependencies:
   provider: ^6.1.1
   cloud_firestore: ^4.15.2
   uuid: ^4.3.3
+  flutter_ffmpeg: ^0.4.2
+  cupertino_progress_bar: ^0.2.0
+  image_picker: ^1.0.7
+  video_player: ^2.8.2
+  modal_bottom_sheet: ^3.0.0-pre
+  video_compress: ^3.1.2
+  firebase_storage: ^11.6.3
 
 dev_dependencies:
   flutter_test:

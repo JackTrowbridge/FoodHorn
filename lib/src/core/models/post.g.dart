@@ -14,6 +14,7 @@ Post _$PostFromJson(Map<String, dynamic> json) => Post(
       created_at: DateTime.parse(json['created_at'] as String),
       updated_at: DateTime.parse(json['updated_at'] as String),
       content_url: json['content_url'] as String,
+      thumbnail_url: json['thumbnail_url'] as String,
       likes: json['likes'] as int,
       bookmarks: json['bookmarks'] as int,
     );
@@ -26,6 +27,7 @@ Map<String, dynamic> _$PostToJson(Post instance) => <String, dynamic>{
       'created_at': instance.created_at.toIso8601String(),
       'updated_at': instance.updated_at.toIso8601String(),
       'content_url': instance.content_url,
+      'thumbnail_url': instance.thumbnail_url,
       'likes': instance.likes,
       'bookmarks': instance.bookmarks,
     };
