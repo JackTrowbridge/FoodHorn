@@ -5,7 +5,7 @@ import 'package:foodhorn/firebase_options.dart';
 import 'package:foodhorn/src/core/services/CachedDeviceRepository.dart';
 import 'package:foodhorn/src/core/services/CachedVideoRepository.dart';
 import 'package:foodhorn/src/features/home/pages/home_page.dart';
-import 'package:foodhorn/src/features/home/pages/video_form.dart';
+import 'package:foodhorn/src/features/upload/pages/video_form.dart';
 import 'package:provider/provider.dart';
 
 void main() {

@@ -7,11 +7,13 @@ part of 'user.dart';
 // **************************************************************************
 
 User _$UserFromJson(Map<String, dynamic> json) => User(
-      id: json['id'] as String,
-      posts: (json['posts'] as List<dynamic>).map((e) => e as String).toList(),
+      username: json['username'] as String,
+      cachedPosts: (json['cachedPosts'] as List<dynamic>)
+          .map((e) => Post.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
 
 Map<String, dynamic> _$UserToJson(User instance) => <String, dynamic>{
-      'id': instance.id,
-      'posts': instance.posts,
+      'username': instance.username,
+      'cachedPosts': instance.cachedPosts,
     };

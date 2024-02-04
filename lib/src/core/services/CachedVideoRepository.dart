@@ -54,7 +54,7 @@ class CachedVideoProvider extends ChangeNotifier{
 
   }
 
-  Future<String?> uploadVideoFile(String videoID, String videoPath) async{
+  Future<String?> uploadVideoFile(String videoPath) async{
 
     File? compressedVideo = await compressVideo(videoPath);
     if(compressedVideo == null){
@@ -63,7 +63,6 @@ class CachedVideoProvider extends ChangeNotifier{
 
     UploadTask uploadTask = FirebaseStorage.instance.ref()
         .child("All Videos")
-        .child(videoID)
         .putFile(compressedVideo);
 
     TaskSnapshot taskSnapshot = await uploadTask;
@@ -74,11 +73,10 @@ class CachedVideoProvider extends ChangeNotifier{
 
   }
 
-  Future<String?> uploadThumbnail(String videoID, String videoPath) async{
+  Future<String?> uploadThumbnail(String videoPath) async{
 
     UploadTask uploadTask = FirebaseStorage.instance.ref()
         .child("All Thumbnails")
-        .child(videoID)
         .putFile(await getThumbnailImage(videoPath));
 
     TaskSnapshot taskSnapshot = await uploadTask;
@@ -95,31 +93,28 @@ class CachedVideoProvider extends ChangeNotifier{
     );
   }
 
-  Future<bool> postVideo(String title, String description, String userID, String videoPath) async{
+  Future<Post?> postVideo(String title, String description, String userID, String videoPath) async{
 
     String? contentURL;
     String? thumbnailURL;
 
     try{
 
-      String videoID = const Uuid().v4();
-      contentURL = await uploadVideoFile(videoID, videoPath);
-      thumbnailURL = await uploadThumbnail(videoID, videoPath);
+      contentURL = await uploadVideoFile(videoPath);
+      thumbnailURL = await uploadThumbnail(videoPath);
 
     }catch(e){
       print(e);
     }
 
     if(contentURL == null || thumbnailURL == null){
-      return false;
+      return null;
     }
-
-    String postID = const Uuid().v4();
 
     Post post = Post(
       title: title,
-      post_id: postID,
       description: description,
+      post_id: "Not set",
       creator_id: userID,
       created_at: DateTime.now(),
       updated_at: DateTime.now(),
@@ -129,11 +124,12 @@ class CachedVideoProvider extends ChangeNotifier{
       bookmarks: 0,
     );
 
-    FirebaseFirestore.instance.collection("posts").add(post.toJson());
-    APIPost().addPostToUser(postID);
+    // DocumentReference documentReference = await FirebaseFirestore.instance.collection("posts").add(post.toJson());
+    await APIPost().addPost(post);
 
-    return true;
+    return post;
   }
+
 
 
 }

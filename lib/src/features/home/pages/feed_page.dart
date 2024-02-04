@@ -227,6 +227,17 @@ class _FeedPageState extends State<FeedPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
 
+                              Text(
+                                "Username",
+                                style: TextStyle(
+                                  color: CupertinoColors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+
+                              const SizedBox(height: 10),
+
                               Text(posts[index].title,
                                 style: TextStyle(
                                   color: CupertinoColors.white,

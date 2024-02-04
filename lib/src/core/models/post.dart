@@ -6,8 +6,8 @@ part 'post.g.dart';
 @JsonSerializable()
 class Post {
   String title;
-  String post_id;
   String description;
+  String post_id;
   String creator_id;
   DateTime created_at;
   DateTime updated_at;
@@ -22,8 +22,8 @@ class Post {
 
   Post({
     required this.title,
-    required this.post_id,
     required this.description,
+    required this.post_id,
     required this.creator_id,
     required this.created_at,
     required this.updated_at,

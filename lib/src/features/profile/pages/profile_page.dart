@@ -3,8 +3,10 @@ import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' as material;
+import 'package:foodhorn/src/core/models/user.dart' as aUser;
 import 'package:foodhorn/src/core/services/CachedDeviceRepository.dart';
 import 'package:foodhorn/src/features/profile/services/api_post.dart';
+import 'package:foodhorn/src/features/profile/services/api_user.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 
@@ -22,6 +24,8 @@ class _ProfilePageState extends State<ProfilePage> {
   bool isLoggingIn = false;
   String errorMessage = "";
 
+  final usernameController = TextEditingController();
+
   void requestLogin() async {
     setState(() {
       isLoggingIn = true;
@@ -34,6 +38,13 @@ class _ProfilePageState extends State<ProfilePage> {
 
       final User? user = cred.user;
       if (user != null) {
+        // Get user data
+        aUser.User? userData = await APIUser().getUserData();
+        if (userData != null) {
+          // Set the user data in the device provider
+          Provider.of<DeviceProvider>(context, listen: false)
+              .setCurrentUser(userData);
+        }
         setState(() {
           isLoggingIn = false;
         });
@@ -182,77 +193,133 @@ class _ProfilePageState extends State<ProfilePage> {
         return ListView(
           children: [
             CupertinoButton(
-              child: Text("Update profile posts"),
-              onPressed: () {
-                deviceProvider.updateUserPosts();
+              child: Text("Update user data"),
+              onPressed: () async{
+                aUser.User? user = await APIUser().getUserData();
+                if(user != null){
+
+                  deviceProvider.setCurrentUser(user);
+                  setState(() {
+                    usernameController.text = user.username;
+                    deviceProvider.currentUser?.cachedPosts = user.cachedPosts;
+                  });
+
+                }
               },
             ),
             CupertinoButton(
               child: Text("Verify token with python server"),
               onPressed: () async {
-                await APIPost().verifyToken();
+                await APIUser().verifyToken();
               },
             ),
+            if (deviceProvider.currentUser != null) ...[
 
-            Column(children: [
-              Wrap(
-                children: [
-                  for (var post in deviceProvider.userPosts) ...[
-                    Container(
-                      margin: const EdgeInsets.fromLTRB(0, 0, 10, 10),
-                      child: CupertinoContextMenu(
-                        actions: [
-                          CupertinoContextMenuAction(
-                            child: const Text('Delete'),
-                            isDestructiveAction: true,
-                            trailingIcon: CupertinoIcons.delete,
-                            onPressed: () async{
-                              Navigator.of(context, rootNavigator: true).pop();
-
-                              bool deleted = await APIPost().deletePost(post.post_id);
-                              if(deleted) deviceProvider.userPosts.remove(post);
-
-                            },
-                          ),
-                        ],
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          // Rounded corners
-                          child: Image.network(
-                            post.thumbnail_url,
-                            height: 200,
-                            fit: BoxFit.cover,
-                            errorBuilder: (BuildContext context, Object error,
-                                StackTrace? stackTrace) {
-                              return Container(
-                                decoration: BoxDecoration(),
-                                height: 75,
-                                width: 75,
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [Icon(CupertinoIcons.photo)],
-                                ),
-                              );
-                            },
+              Column(children: [
+                Wrap(
+                  children: [
+                    for (var post in deviceProvider.currentUser!.cachedPosts) ...[
+                      Container(
+                        margin: const EdgeInsets.fromLTRB(0, 0, 10, 10),
+                        child: CupertinoContextMenu(
+                          actions: [
+                            CupertinoContextMenuAction(
+                              child: const Text('Delete'),
+                              isDestructiveAction: true,
+                              trailingIcon: CupertinoIcons.delete,
+                              onPressed: () async{
+                                Navigator.of(context, rootNavigator: true).pop();
+                                await APIPost().deletePost(post);
+                              },
+                            ),
+                          ],
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            // Rounded corners
+                            child: Image.network(
+                              post.thumbnail_url,
+                              height: 200,
+                              fit: BoxFit.cover,
+                              errorBuilder: (BuildContext context, Object error,
+                                  StackTrace? stackTrace) {
+                                return Container(
+                                  decoration: BoxDecoration(),
+                                  height: 75,
+                                  width: 75,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [Icon(CupertinoIcons.photo)],
+                                  ),
+                                );
+                              },
+                            ),
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ],
-                ],
-              ),
-            ]),
+                ),
+              ]),
+
+            ],
+            CupertinoListSection(
+              dividerMargin: 20,
+              additionalDividerMargin: 0,
+               header: Text("Your Profile"),
+              children: [
+                CupertinoTextFormFieldRow(
+                  controller: usernameController,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a username';
+                    }
+                    return null;
+                  },
+                  prefix: SizedBox(
+                    width: prefixWidth,
+                    child: const Text("Username", textAlign: TextAlign.left),
+                  ),
+                  placeholder: "Username",
+                  keyboardType: TextInputType.text,
+                )
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            CupertinoButton(
+                child: Text("Update Profile"),
+                onPressed: () async{
+
+                  aUser.User? user = await APIUser().updateUserData(
+                      aUser.User(
+                          username: usernameController.text,
+                          cachedPosts: []
+                      )
+                  );
+
+                  if(user != null){
+                    deviceProvider.setCurrentUser(user);
+                    setState(() {
+                      usernameController.text = user.username;
+                    });
+                  }
+
+                }
+            ),
+
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                child: CupertinoButton.filled(
+                child: CupertinoButton(
                   borderRadius: BorderRadius.circular(8),
                   child: Text("Sign Out"),
                   onPressed: () {
                     setState(() {
-                      deviceProvider.userPosts = [];
+                      // deviceProvider.userPosts = [];
                       FirebaseAuth.instance.signOut();
                     });
                   },

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:cupertino_progress_bar/cupertino_progress_bar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:foodhorn/src/core/models/post.dart';
 import 'package:foodhorn/src/core/services/CachedDeviceRepository.dart';
 import 'package:foodhorn/src/core/services/CachedVideoRepository.dart';
 import 'package:image_picker/image_picker.dart';
@@ -97,6 +98,7 @@ class _VideoFormState extends State<VideoForm> {
                         borderRadius: BorderRadius.circular(99),
                         child: Text("Publish"),
                         onPressed: ()async{
+                          DeviceProvider deviceProvider = Provider.of<DeviceProvider>(context, listen: false);
 
                           String? userID = FirebaseAuth.instance.currentUser?.uid;
                           if(userID == null){
@@ -113,10 +115,11 @@ class _VideoFormState extends State<VideoForm> {
                           setState(() {
                             isUploading = true;
                           });
-                          bool success = await videoProvider.postVideo("Hello", "I have aids", userID, videoFilePath);
-                          if(success){
-                            DeviceProvider deviceProvider = Provider.of<DeviceProvider>(context, listen: false);
-                            deviceProvider.updateUserPosts();
+                          Post? post = await videoProvider.postVideo("This is a title", "This is a description", userID, videoFilePath);
+                          if(post != null){
+                            if(deviceProvider.isUserLoggedIn()){
+                              deviceProvider.currentUser?.cachedPosts.add(post);
+                            }
                           }
                           setState(() {
                             isUploading = false;
