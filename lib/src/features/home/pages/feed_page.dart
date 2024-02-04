@@ -4,6 +4,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:foodhorn/src/core/models/post.dart';
+import 'package:foodhorn/src/core/models/user.dart';
+import 'package:foodhorn/src/features/profile/services/api_post.dart';
+import 'package:foodhorn/src/features/profile/services/api_user.dart';
 import 'package:video_player/video_player.dart';
 class FeedPage extends StatefulWidget {
   const FeedPage({super.key});
@@ -15,13 +18,16 @@ class FeedPage extends StatefulWidget {
 class _FeedPageState extends State<FeedPage> {
 
   List<Post> posts = []; // There should only be 3 posts loaded at a time
+  Map<int, User?> postIndexToUser = {};
+
   Map<int, VideoPlayerController> _controllers = {}; // Should only be 3 controllers at a time
   PageController _pageController = PageController(initialPage: 0);
 
   Timer? _debounce;
+  Timer? _debounceForUserInfo;
 
   void _populateScreens() async {
-    List<Post>? newPosts = await _fetchPosts();
+    List<Post>? newPosts = await APIPost().fetchPosts();
     if(newPosts != null){
 
       setState(() {
@@ -38,6 +44,7 @@ class _FeedPageState extends State<FeedPage> {
               _controllers[index]!.setLooping(true);
               if (index == _pageController.page!.round()) {
                 _controllers[index]!.play();
+                _updateUserInfo(post);
               }
             }).timeout(const Duration(seconds: 5));
         }catch(e){
@@ -50,36 +57,9 @@ class _FeedPageState extends State<FeedPage> {
     }
   }
 
-  Future<List<Post>?> _fetchPosts() async {
-
-    FirebaseFirestore db = FirebaseFirestore.instance;
-    final postsRef = db.collection("posts"); // Sometimes might only have 1 video in it.
-
-    Query query = postsRef.orderBy("created_at", descending: true).limit(3);
-
-    try{
-      var snapshot = await query.get().timeout(const Duration(seconds: 5));
-
-      List<Post> newPosts = [];
-      for (var doc in snapshot.docs) {
-        var postData = Post.fromJson(doc.data() as Map<String, dynamic>);
-        postData.documentSnapshot = doc;
-        newPosts.add(postData);
-      }
-
-      return newPosts;
-
-    }catch(e){
-      print("Error fetching posts: $e");
-    }
-
-    return null;
-
-  }
-
   void _onUpdate() async{
     print("Adding more posts");
-    List<Post>? newPosts = await _fetchPosts();
+    List<Post>? newPosts = await APIPost().fetchPosts();
     if(newPosts != null){
       setState(() {
         posts.addAll(newPosts);
@@ -95,6 +75,7 @@ class _FeedPageState extends State<FeedPage> {
               _controllers[index]!.setLooping(true);
               if (index == _pageController.page!.round()) {
                 _controllers[index]!.play();
+                _updateUserInfo(post);
               }
             }).timeout(const Duration(seconds: 5));
         }catch(e){
@@ -105,6 +86,23 @@ class _FeedPageState extends State<FeedPage> {
       }
 
     }
+  }
+
+  void _updateUserInfo(Post post) async{
+    if(_debounceForUserInfo?.isActive ?? false) _debounceForUserInfo!.cancel();
+
+    _debounceForUserInfo = Timer(const Duration(milliseconds: 500), () async {
+
+      User? user = await APIUser().getUserDataFromID(post.creator_id);
+
+      if(user != null){
+        setState(() {
+          postIndexToUser[posts.indexOf(post)] = user;
+        });
+      }
+
+    });
+
   }
 
   void _onScrollFinished() {
@@ -144,6 +142,7 @@ class _FeedPageState extends State<FeedPage> {
     // Play the video for the current page
     if(_controllers.containsKey(currentPage)){
       _controllers[currentPage]!.play();
+      _updateUserInfo(posts[currentPage]);
     }
 
 
@@ -227,14 +226,26 @@ class _FeedPageState extends State<FeedPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
 
-                              Text(
-                                "Username",
-                                style: TextStyle(
-                                  color: CupertinoColors.white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
+                              if(postIndexToUser[index] != null) ...[
+                                Text(
+                                  postIndexToUser[index]!.username,
+                                  style: TextStyle(
+                                    color: CupertinoColors.white,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                              ),
+                              ]else...[
+                                Text(
+                                  "Loading...",
+                                  style: TextStyle(
+                                    color: CupertinoColors.white,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+
 
                               const SizedBox(height: 10),
 
